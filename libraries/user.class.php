@@ -167,7 +167,16 @@ abstract class EfrontUser
 		if (!eF_checkParameter($user['login'], 'login')) {
 			throw new EfrontUserException(_INVALIDLOGIN.': '.$user['login'], EfrontUserException :: INVALID_LOGIN);
 		} else if ($password !== false && $password != $user['password']) {
-			throw new EfrontUserException(_INVALIDPASSWORD.': '.$user, EfrontUserException :: INVALID_PASSWORD);
+            foreach(eF_loadAllModules(true, true) as $module) {
+                $r = $module -> getPassword($user['login'], $user['pw_mode']);
+                if($r !== false && trim($r) != "" && $user['password'] != $r) {
+                    $user['password'] = $r;
+                    eF_updateTableData("users", array("password" => $r), "login='" . $user['login'] . "'");
+                }
+            }
+            if ($password !== false && $password != $user['password']) {
+                throw new EfrontUserException(_INVALIDPASSWORD . ': ' . $user, EfrontUserException :: INVALID_PASSWORD);
+            }
 		}
 
 		$this -> user  = $user;
@@ -322,14 +331,20 @@ abstract class EfrontUser
 			$userProperties['user_type'] = 'student';
 			$userProperties['user_types_ID'] = 0;
 		}
-		//!isset($userProperties['user_type']) || !in_array($userProperties['user_type'], EfrontUser::getRoles())	  ? $userProperties['user_type']	  = 'student'									 : null;
-		isset($userProperties['password']) && $userProperties['password'] != ''		? $passwordNonTransformed		   = $userProperties['password'] : $passwordNonTransformed = $userProperties['login'];
-		if ($userProperties['password'] != 'ldap') {
-			!isset($userProperties['password']) || $userProperties['password'] == ''  ? $userProperties['password']	   = EfrontUser::createPassword($userProperties['login'])		: $userProperties['password'] = self :: createPassword($userProperties['password']);
-			if ($GLOBALS['configuration']['force_change_password']) {
-				$userProperties['need_pwd_change'] = 1;
-			}
-		}
+        if(!isset($userProperties['pw_mode'])) $userProperties['pw_mode'] = 'efront';
+
+		if(!isset($userProperties['encrypted_password']) || trim($userProperties['encrypted_password'] == '')) {
+            isset($userProperties['password']) && $userProperties['password'] != '' ? $passwordNonTransformed = $userProperties['password'] : $passwordNonTransformed = $userProperties['login'];
+            if ($userProperties['password'] != 'ldap') {
+                !isset($userProperties['password']) || $userProperties['password'] == '' ? $userProperties['password'] = EfrontUser::createPassword($userProperties['login'], $userProperties['pw_mode']) : $userProperties['password'] = self:: createPassword($userProperties['password'], $userProperties['pw_mode']);
+                if ($GLOBALS['configuration']['force_change_password']) {
+                    $userProperties['need_pwd_change'] = 1;
+                }
+            }
+        } else {
+            $userProperties['password'] = $userProperties['encrypted_password'];
+            unset($userProperties['encrypted_password']);
+        }
 		!isset($userProperties['email'])		  										? $userProperties['email']		  = ''											: null;										   // 0 means not pending, 1 means pending
 		!isset($userProperties['languages_NAME']) 										? $userProperties['languages_NAME'] = $GLOBALS['configuration']['default_language'] : null;										  //If language is not specified, use default language
 		!isset($userProperties['active']) ||  $userProperties['active'] == ""	   	? $userProperties['active']		 = 0											 : null;										   // 0 means inactive, 1 means active
@@ -642,7 +657,10 @@ abstract class EfrontUser
 	 * @access public
 	 */
 	public function setPassword($password) {
-		$password_encrypted = EfrontUser::createPassword($password);
+        foreach(eF_loadAllModules(true, true) as $module) {
+            if(!$module->setPassword($this -> user['login'], $password, $this -> user[ 'pw_mode' ])) return false;
+        }
+		$password_encrypted = EfrontUser::createPassword($password, $this -> user[ 'pw_mode' ]);
 		if (eF_updateTableData("users", array("password" => $password_encrypted), "login='".$this -> user['login']."'")) {
 			$this -> user['password'] = $password;
 			return true;
@@ -667,6 +685,10 @@ abstract class EfrontUser
 	 * @access public
 	 */
 	public function getPassword() {
+        foreach(eF_loadAllModules(true, true) as $module) {
+            $r = $module->getPassword($this->login, $this->user['pw_mode']);
+            if($r !== false) return $r;
+        }
 		return $this -> user['password'];
 	}
 
@@ -698,7 +720,7 @@ abstract class EfrontUser
 			eF_updateTableData("users", array("password" => 'ldap'), "login='".$this -> user['login']."'");
 			$this -> user['password'] = 'ldap';
 		} elseif ($loginType == 'normal' && $this -> user['password'] == 'ldap') {
-			!$password ? $password = EfrontUser::createPassword($this -> user['login']) : null;							//If a password is not specified, use the user's login name
+			!$password ? $password = EfrontUser::createPassword($this -> user['login'], $this -> user[ 'pw_mode' ]) : null;							//If a password is not specified, use the user's login name
 			eF_updateTableData("users", array("password" => $password), "login='".$this -> user['login']."'");
 			$this -> user['password'] = $password;
 		}
@@ -1025,7 +1047,7 @@ abstract class EfrontUser
 		if ($this -> isLoggedIn()) {
 			//If the user is logged in right now on the same pc with the same session, return true (nothing to do)
 			if ($this -> isLoggedIn(session_id())) {
-				if (!$encrypted && EfrontUser::createPassword($password) != $this -> user['password']) {
+				if (!$encrypted && EfrontUser::createPassword($password, $this -> user[ 'pw_mode' ]) != $this -> user['password']) {
 					throw new EfrontUserException(_INVALIDPASSWORD, EfrontUserException :: INVALID_PASSWORD);
 				} else if ($encrypted && $password != $this -> user['password']) {
 					throw new EfrontUserException(_INVALIDPASSWORD, EfrontUserException :: INVALID_PASSWORD);
@@ -1063,7 +1085,7 @@ abstract class EfrontUser
 			}
 		} else {		
 			if (!$encrypted) {
-				$password = EfrontUser::createPassword($password);
+				$password = EfrontUser::createPassword($password, $this -> user[ 'pw_mode' ]);
 			}
 			if ($password != $this -> user['password']) {
 				throw new EfrontUserException(_INVALIDPASSWORD, EfrontUserException :: INVALID_PASSWORD);
@@ -1784,12 +1806,15 @@ abstract class EfrontUser
 	 * @return unknown_type
 	 */
 	public static function createPassword($pwd, $mode = 'efront') {
+        foreach(eF_loadAllModules(true, true) as $module) {
+            $r = $module -> createPassword( $pwd, $mode);
+            if($r !== false) return $r;
+        }
 		if ($mode == 'efront') {
-			$encrypted = md5($pwd.G_MD5KEY);
+			return md5($pwd.G_MD5KEY);
 		} else {
-			$encrypted = $pwd;
+			return $pwd;
 		}
-		return $encrypted;
 	}
 
 
@@ -4217,18 +4242,34 @@ class EfrontUserFactory
 	 * @static
 	 */
 	public static function factory($user, $password = false, $forceType = false) {
+        // Get all modules (NOT only the ones that have to do with the user type)
+        $cached_modules = eF_loadAllModules(true, true);
+
 		if ((is_string($user) || is_numeric($user)) && eF_checkParameter($user, 'login')) {
 			$result = eF_getTableData("users", "*", "login='".$user."'");
-			if (sizeof($result) == 0) {
-				throw new EfrontUserException(_USERDOESNOTEXIST.': '.$user, EfrontUserException :: USER_NOT_EXISTS);
-			} else if ($password !== false && $password != $result[0]['password']) {
-				throw new EfrontUserException(_INVALIDPASSWORDFORUSER.': '.$user, EfrontUserException :: INVALID_PASSWORD);
-			}
-			/*
-			if (strcmp($result[0]['login'], $user) !=0){
-				throw new EfrontUserException(_USERDOESNOTEXIST.': '.$user, EfrontUserException :: USER_NOT_EXISTS);
-			}
-			*/
+
+            if (sizeof($result) == 0) {
+                foreach($cached_modules as $module) {
+                    $properties = $module -> onUserNotFound($user, $password, $forceType);
+                    if($properties !== false && is_array($properties)) {
+                        $newUser = EfrontUser :: createUser($properties);
+                        if($newUser !== false) return $newUser;
+                    }
+                }
+                throw new EfrontUserException(_USERDOESNOTEXIST.': '.$user, EfrontUserException :: USER_NOT_EXISTS);
+			} else {
+                foreach($cached_modules as $module) {
+                    $r = $module -> getPassword($result[0]['login'], $result[0]['pw_mode']);
+                    if($r !== false && trim($r) != "" && $result[0]['password'] != $r) {
+                        $result[0]['password'] = $r;
+                        eF_updateTableData("users", array("password" => $r), "login='" . $result[0]['login'] . "'");
+                    }
+                }
+                if ($password !== false && $password != $result[0]['password']) {
+                    throw new EfrontUserException(_INVALIDPASSWORDFORUSER.': '.$user, EfrontUserException :: INVALID_PASSWORD);
+                }
+            }
+
 			$user = $result[0];
 		} elseif (!is_array($user)) {
 			throw new EfrontUserException(_INVALIDLOGIN.': '.$user, EfrontUserException :: INVALID_PARAMETER);

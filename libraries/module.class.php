@@ -105,6 +105,12 @@ class EfrontModuleException extends Exception
  * - onCompleteLesson($lessonId, $login)
  * - onNewPageLoad()
  * - onSetTheme($theme)
+ *
+ ***** Authentification Provider ********
+ * - onUserNotFound($user, $password, $forceType)
+ * - createPassword($password, $mode)
+ * - getPassword($user)
+ * - setPassword($user, $password)
  */
 
 abstract class EfrontModule
@@ -1441,7 +1447,50 @@ abstract class EfrontModule
     public static function onIndexPageLoad() {
     	return false;
     }
-	
- 
+
+    /**
+     * Code that gets executed during the user object factory, when the user is not found.
+     *
+     * @return boolean False if Module can not provide the user, or Array with user data to create a new user (mandatory keys: login, name, surname, email)
+     * @param string $user
+     * @param string $password
+     * @param mixed $forceType
+     */
+    public function onUserNotFound($user, $password, $forceType) {
+        return false;
+    }
+
+    /**
+     * Code that checks if the password encryption mode is provided by this module and if yes encrypts the given password
+     *
+     * @return boolean False if Module can not provide the encryption mode, or else String with encrypted $password
+     * @param string $password
+     * @param string $mode
+     */
+    public function createPassword($password, $mode) {
+        return false;
+    }
+
+    /**
+     * Code that checks if the user is provided by this module and if yes, returns the encrypted password
+     *
+     * @return boolean False if Module can not provide the user, or else String with encrypted password
+     * @param string $user
+     * @param string $mode
+     */
+    public function getPassword($user, $mode) {
+        return false;
+    }
+
+    /**
+     * Code that checks if the user is provided by this module and if yes set a new password if possible.
+     *
+     * @return boolean False if Module wants to deny this change, or else true.
+     * @param string $user
+     * @param string $password
+     */
+    public function setPassword($user, $password) {
+        return true;
+    }
 }
 
