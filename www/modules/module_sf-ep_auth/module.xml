@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<module>
+	<title>SF-EP Auth</title>
+	<author>Karl Johann Schubert</author>
+	<date>2015 05 16</date>
+	<version>0.1.0</version>
+	<description>Allow EPs to login with there credentials from SalesForce</description>
+	<className>module_sf_ep_auth</className>
+</module>

@@ -1493,7 +1493,7 @@ DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
   `login` varchar(100) NOT NULL,
-  `password` char(32) NOT NULL,
+  `password` char(50) NOT NULL,
   `pw_mode` char(10) NOT NULL DEFAULT 'efront',
   `email` varchar(150) NOT NULL,
   `languages_NAME` varchar(50) NOT NULL,
