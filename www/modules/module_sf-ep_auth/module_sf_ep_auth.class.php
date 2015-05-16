@@ -47,6 +47,7 @@ class module_sf_ep_auth extends EfrontModule
                 'login' => $r->records[0]->PersonEmail,
                 'name' => $fn,
                 'surname' => $ln,
+                'email' => $r->records[0]->PersonEmail,
                 'active' => 1,
                 'pw_mode' => 'sf-ep',
                 'encrypted_password' => $r->records[0]->Password__c
