@@ -1,0 +1,1 @@
+a:1:{s:9:"positions";a:4:{s:6:"layout";s:6:"simple";s:8:"leftList";a:0:{}s:10:"centerList";a:1:{i:0;s:5:"login";}s:9:"rightList";a:0:{}}}
