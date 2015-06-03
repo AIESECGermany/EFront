@@ -9,6 +9,8 @@ class module_sf_ep_auth extends EfrontModule
     private $_SFpass = "";
     private $_SFtoken = "";
 
+    private $_groupID = null;
+
     private $_connection;
 
 
@@ -18,6 +20,8 @@ class module_sf_ep_auth extends EfrontModule
         $this->_SFuser = $SFuser;
         $this->_SFpass = $SFpass;
         $this->_SFtoken = $SFtoken;
+
+        if(isset($groupID)) $this->_groupID = $groupID;
 
         $this->_connection = new SforceEnterpriseClient();
         $this->_connection->createConnection(dirname(__FILE__) . "/soapclient/enterprise_aiesec_gery.wsdl.xml");
@@ -103,6 +107,15 @@ class module_sf_ep_auth extends EfrontModule
      */
     public function setPassword($user, $password) {
         return false;
+    }
+
+    public function onNewUser($user) {
+        if($this->_groupID !== null) {
+            $user = EfrontUserFactory :: factory ($user);
+            if($user->user['pw_mode'] == 'sf-ep') {
+                $user->addGroups($this->_groupID);
+            }
+        }
     }
 }
 ?>
