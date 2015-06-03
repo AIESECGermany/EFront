@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<module>
+	<title>GIS Auth</title>
+	<author>Karl Johann Schubert</author>
+	<date>2015 06 02</date>
+	<version>0.1.0</version>
+	<description>Allow members to login with their GIS credentials</description>
+	<className>module_gis_auth</className>
+</module>

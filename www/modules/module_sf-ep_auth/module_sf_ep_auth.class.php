@@ -13,8 +13,14 @@ class module_sf_ep_auth extends EfrontModule
 
 
     public function __construct() {
+        require( dirname(__FILE__) . '/config.php');
+        $this->_salt = $salt;
+        $this->_SFuser = $SFuser;
+        $this->_SFpass = $SFpass;
+        $this->_SFtoken = $SFtoken;
+
         $this->_connection = new SforceEnterpriseClient();
-        $this->_connection->createConnection(dirname(__FILE__) . "/soapclient/enterprise.wsdl.xml");
+        $this->_connection->createConnection(dirname(__FILE__) . "/soapclient/enterprise_aiesec_gery.wsdl.xml");
         $this->_connection->login($this->_SFuser, $this->_SFpass . $this->_SFtoken);
     }
 
@@ -78,11 +84,13 @@ class module_sf_ep_auth extends EfrontModule
      * @param string $mode
      */
     public function getPassword($user, $mode) {
-        $r = $this->_connection->query("SELECT Password__c FROM Account WHERE RecordType.Id='01220000000MJnD' AND PersonEmail='" . $user . "' LIMIT 1");
-        if(count($r->records) == 0) {
-            return false;
-        } else {
-            return $r->records[0]->Password__c;
+        if($mode == 'sf-ep') {
+            $r = $this->_connection->query("SELECT Password__c FROM Account WHERE RecordType.Id='01220000000MJnD' AND PersonEmail='" . $user . "' LIMIT 1");
+            if (count($r->records) == 0) {
+                return false;
+            } else {
+                return $r->records[0]->Password__c;
+            }
         }
     }
 
