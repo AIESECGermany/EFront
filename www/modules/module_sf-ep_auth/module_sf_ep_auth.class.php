@@ -45,10 +45,28 @@ class module_sf_ep_auth extends EfrontModule
      * @param mixed $forceType
      */
     public function onUserNotFound($user, $password, $forceType) {
-        $r = $this->_connection->query("SELECT Name, PersonEmail, Password__c FROM Account WHERE RecordType.Id='01220000000MJnD' AND PersonEmail='" . $user . "'");
+        $r = $this->_connection->query("SELECT Id, Name, PersonEmail, Password__c, Birth_Date__c FROM Account WHERE RecordType.Id='01220000000MJnD' AND PersonEmail='" . $user . "'");
         if(count($r->records) == 0) {
             return false;
-        } else {
+        } else if(isset($r->records[0])) {
+        	$pw = $r->records[0]->Password__c;
+        	if(trim($pw) == "") {
+        		if(trim($r->records[0]->Birth_Date__c) != "" && trim($r->records[0]->Id) != "") {
+	        		$pw = sha1($this->_salt . $r->records[0]->Birth_Date__c);
+
+       				$obj = new stdclass();
+       				$obj->Id = $r->records[0]->Id;
+					$obj->Password__c = $pw;
+					
+					try {
+						$this->_connection->update(array($obj), 'Account');
+					} catch (Exception $e) {
+						return false;
+					}
+				} else {
+					return false;
+				}
+        	}
             $n = explode(' ', $r->records[0]->Name);
             $ln = $n[(count($n) - 1)];
             unset($n[(count($n) - 1)]);
@@ -60,7 +78,7 @@ class module_sf_ep_auth extends EfrontModule
                 'email' => $r->records[0]->PersonEmail,
                 'active' => 1,
                 'pw_mode' => 'sf-ep',
-                'encrypted_password' => $r->records[0]->Password__c
+                'encrypted_password' => $pw
             );
         }
     }
