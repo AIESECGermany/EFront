@@ -1,6 +1,8 @@
 <?php
-require_once( dirname(__FILE__) . '/gis-wrapper/AuthProviderUser.php');
-require_once( dirname(__FILE__) . '/gis-wrapper/GIS.php');
+require_once( dirname(__FILE__) . '../../../vendor/autoload.php');
+
+use GISwrapper\AuthProviderCombined;
+use GISwrapper\GIS;
 
 class module_gis_auth extends EfrontModule
 {
@@ -9,13 +11,10 @@ class module_gis_auth extends EfrontModule
 
     private $_offices;
 
-    private $_membersOnly;
-
     public function __construct() {
         require( dirname(__FILE__) . '/config.php');
         $this->_salt = $salt;
         $this->_offices = $offices;
-        $this->_membersOnly = $membersOnly;
     }
 
     public function getName() {
@@ -39,23 +38,21 @@ class module_gis_auth extends EfrontModule
             $password = $_POST['password'];
         }
         try {
-            $User = new \GIS\AuthProviderUser($user, $password);
-            $gis = new \GIS\GIS($User);
+            $User = new AuthProviderCombined($user, $password, false);
+            $gis = new GIS($User);
 
             foreach ($gis->current_person as $p) {
                 if(isset($p->current_office->id)) {
                     if (in_array($p->current_office->id, $this->_offices)) {
-                        if($this->_membersOnly === false || (isset($p->current_position->id) && $p->current_position->id != "")) {
-                            return array(
-                                'login' => $user,
-                                'name' => $p->person->first_name,
-                                'surname' => $p->person->last_name,
-                                'email' => $p->person->email,
-                                'active' => 1,
-                                'pw_mode' => 'gis',
-                                'encrypted_password' => sha1($this->_salt . $password)
-                            );
-                        }
+                        return array(
+                            'login' => $user,
+                            'name' => $p->person->first_name,
+                            'surname' => $p->person->last_name,
+                            'email' => $p->person->email,
+                            'active' => 1,
+                            'pw_mode' => 'gis',
+                            'encrypted_password' => sha1($this->_salt . $password)
+                        );
                     }
                 }
             }
