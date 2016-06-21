@@ -1,0 +1,5 @@
+{
+    "require": {
+        "kjschubert/php-gis-wrapper": "^0.2.5"
+    }
+}
