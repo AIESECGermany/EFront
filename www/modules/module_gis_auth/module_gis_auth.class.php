@@ -41,27 +41,32 @@ class module_gis_auth extends EfrontModule
         try {
             $User = new AuthProviderCombined($user, $password, false);
             $gis = new GIS($User);
-
-            foreach ($gis->current_person as $p) {
-                if(isset($p->current_office->id)) {
-                    if (in_array($p->current_office->id, $this->_offices)) {
-                        return array(
-                            'login' => $user,
-                            'name' => $p->person->first_name,
-                            'surname' => $p->person->last_name,
-                            'email' => $p->person->email,
-                            'active' => 1,
-                            'pw_mode' => 'gis',
-                            'encrypted_password' => sha1($this->_salt . $password)
-                        );
-                    }
+            $p = $gis->current_person->get();
+            $validOffice = false;
+            foreach ($p->current_offices as $office){
+                if (in_array($office->id, $this->_offices)) {
+                    $validOffice = true;
+                    break;
                 }
+            }
+            if ($validOffice) {
+                return array(
+                    'login' => $user,
+                    'name' => $p->person->first_name,
+                    'surname' => $p->person->last_name,
+                    'email' => $p->person->email,
+                    'active' => 1,
+                    'pw_mode' => 'gis',
+                    'encrypted_password' => sha1($this->_salt . $password)
+                );
             }
         } catch (Exception $e) {
             return false;
         }
         return false;
     }
+
+
 
     /**
      * Code that checks if the password encryption mode is provided by this module and if yes encrypts the given password
