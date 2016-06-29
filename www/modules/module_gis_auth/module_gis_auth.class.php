@@ -98,6 +98,7 @@ class module_gis_auth extends EfrontModule
                 if($User->getToken() != "") {
                     $password = sha1($this->_salt . $_POST['password']);
                     eF_updateTableData("users", array("password" => $password), "login='" . $user . "' AND password!='" . $password . "'");
+                    return $password;
                 }
             } catch(InvalidCredentialsException $e) {
                 // set the password to '' when somebody logs in with that password but it's wrong, through we use hashes it's safe because a hash is never ''
