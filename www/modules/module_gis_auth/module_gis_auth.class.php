@@ -1,7 +1,7 @@
 <?php
 require_once( dirname(__FILE__) . '/../../../vendor/autoload.php');
 
-use GISwrapper\AuthProviderCombined;
+use GISwrapper\AuthProviderOP;
 use GISwrapper\GIS;
 use GISwrapper\InvalidCredentialsException;
 
@@ -39,7 +39,7 @@ class module_gis_auth extends EfrontModule
             $password = $_POST['password'];
         }
         try {
-            $User = new AuthProviderCombined($user, $password, false);
+            $User = new AuthProviderOP($user, $password, false);
             $gis = new GIS($User);
             $p = $gis->current_person->get();
             $validOffice = false;
@@ -94,7 +94,7 @@ class module_gis_auth extends EfrontModule
         // if the login form was send and the $user matches the username, then we use this data to authenticate against the GIS and if not we can not provide the password here (that's why we store the hash in the database)
         if( isset($_POST['submit_login']) && trim($_POST['password']) != "" && $user === $_POST['login'] && eF_checkParameter($user, 'login')) {
             try {
-                $User = new AuthProviderCombined($user, $_POST['password'], false);
+                $User = new AuthProviderOP($user, $_POST['password'], false);
                 if($User->getToken() != "") {
                     $password = sha1($this->_salt . $_POST['password']);
                     eF_updateTableData("users", array("password" => $password), "login='" . $user . "' AND password!='" . $password . "'");
