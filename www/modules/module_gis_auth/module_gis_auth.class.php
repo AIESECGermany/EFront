@@ -40,28 +40,18 @@ class module_gis_auth extends EfrontModule
         }
         try {
             $User = new AuthProviderOP($user, $password, false);
-            $gis = new GIS($User);
-            $p = $gis->current_person->get();
-            $validOffice = false;
-            foreach ($p->current_offices as $office){
-                if (in_array($office->id, $this->_offices)) {
-                    $validOffice = true;
-                    break;
-                }
-            }
-            if ($validOffice) {
+		$User->getToken();
                 return array(
                     'login' => $user,
-                    'name' => $p->person->first_name,
-                    'surname' => $p->person->last_name,
-                    'email' => $p->person->email,
+                    'name' => 'AIESEC',
+                    'surname' => 'EP',
+                    'email' => $user,
                     'active' => 1,
                     'pw_mode' => 'gis',
                     'encrypted_password' => sha1($this->_salt . $password)
                 );
-            }
         } catch (Exception $e) {
-            return false;
+    return false;
         }
         return false;
     }
