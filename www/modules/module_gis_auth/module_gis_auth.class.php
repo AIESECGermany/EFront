@@ -12,10 +12,13 @@ class module_gis_auth extends EfrontModule
 
     private $_offices;
 
+    private $_groupID;
+
     public function __construct() {
         require( dirname(__FILE__) . '/config.php');
         $this->_salt = $salt;
         $this->_offices = $offices;
+        $this->_groupID = $groupID;
     }
 
     public function getName() {
@@ -109,6 +112,15 @@ class module_gis_auth extends EfrontModule
      */
     public function setPassword($user, $password) {
         return false;
+    }
+
+    public function onNewUser($user) {
+        if($this->_groupID !== null) {
+            $user = EfrontUserFactory :: factory ($user);
+            if($user->user['pw_mode'] == 'gis') {
+                $user->addGroups($this->_groupID);
+            }
+        }
     }
 }
 ?>
