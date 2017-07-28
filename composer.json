@@ -1,5 +1,10 @@
 {
+    "minimum-stability":"dev",
     "require": {
-        "kjschubert/php-gis-wrapper": "^0.2.5"
-    }
+	"aiesecgermany/php-gis-wrapper" : "dev-master"
+    },
+    "repositories" : [{
+        "type" : "vcs",
+        "url" : "https://github.com/AIESECGermany/PHP-GIS-Wrapper"
+    }]
 }
